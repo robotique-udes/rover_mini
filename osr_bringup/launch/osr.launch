@@ -1,6 +1,6 @@
 <launch>
 
-	<arg name="joy" default="js1" />
+	
 
 	<param name="/baud_rate" type="int" value="115200" />
 
@@ -12,11 +12,6 @@
 
 	<node name="rover" pkg="osr" type="rover.py" respawn="true" />
 	
-	<node pkg="joy" type="joy_node" name="joy">
-      <param name="dev" value="/dev/input/$(arg joy)"/>
-      <param name="deadzone" value="0.2"/>
-      <param name="autorepeat_rate" value="5"/>
-      <param name="coalesce_interval" value="0.01"/>
-    </node>
+	
 </launch>
 	
