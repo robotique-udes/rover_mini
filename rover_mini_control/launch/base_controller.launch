@@ -1,22 +1,14 @@
 <launch>
-
-	<arg name="joy" default="js1" />
-
 	<param name="/baud_rate" type="int" value="115200" />
-
 	<param name="/qpps" type="string" value="0,0,0,0" />
 	<param name="/accel" type="string" value="0,0,0,0" />
 	<param name="battery_low" type="int" value="11" />
 	<param name="battery_high" type="int" value="18" />
 	<param name="mech_dist" type="string" value="7.254,10.5,10.5,10.073" />
 
-	<node name="rover" pkg="osr" type="rover.py" respawn="true" />
-	
-	<node pkg="joy" type="joy_node" name="joy">
-      <param name="dev" value="/dev/input/$(arg joy)"/>
-      <param name="deadzone" value="0.2"/>
-      <param name="autorepeat_rate" value="5"/>
-      <param name="coalesce_interval" value="0.01"/>
-    </node>
+	<node name="hardware_interface" pkg="rover_mini_control" type="hardware_interface.py" respawn="true" output="screen">
+		<param name="encoder_min" value="-2147483648" />
+		<param name="encoder_max" value="2147483647" />
+		<param name="ticks_per_meter" value="26069" />
+	</node>
 </launch>
-	

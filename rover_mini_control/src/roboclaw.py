@@ -9,9 +9,9 @@ class Roboclaw:
 	def __init__(self, comport, rate, timeout=0.01, retries=3):
 		self.comport = comport
 		self.rate = rate
-		self.timeout = timeout;
+		self.timeout = timeout
 		self._trystimeout = retries
-		self._crc = 0;
+		self._crc = 0
 
 	#Command Enums
 	class Cmd():
@@ -1067,6 +1067,7 @@ class Roboclaw:
 		try:
 			self._port = serial.Serial(port=self.comport, baudrate=self.rate, timeout=1, interCharTimeout=self.timeout)
 		except:
+			"ERROR: could not connect to motor drivers. Make sure they are powered on."
 			return 0
 		return 1
 
