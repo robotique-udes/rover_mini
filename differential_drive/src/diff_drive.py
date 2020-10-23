@@ -3,11 +3,13 @@
 import rospy
 from copy import deepcopy
 from math import sin, cos, pi 
-from differential_drive.msg import VelTarget, Encoders
+from differential_drive.msg import VelocityTargets, Encoders
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from tf.broadcaster import TransformBroadcaster 
 from tf.transformations import quaternion_from_euler
+
+#TODO: wrap around should be handled in hardware interface and multiplier should be passed by message
 
 class DifferentialDrive():
     def __init__(self):
@@ -23,13 +25,12 @@ class DifferentialDrive():
         self.odom_frame_id = rospy.get_param("~odom_frame_id", "odom")
         self.publish_tf = rospy.get_param("~publish_tf", True)
 
-        self.vel_target = VelTarget()
-        self.wheel_enc = Encoders()  # Wheel encoders with limits
-        self.prev_wheel_enc = Encoders()  # Previous wheel encoders with limits
-        self.wheel_enc_wrap = Encoders()  # Wheel encoders with wrap around
-        self.prev_wheel_enc_wrap = Encoders()  # Previous wheel encoders with wrap around
-        self.prev_wheel_enc_wrap.left_encoder = None 
-        self.prev_wheel_enc_wrap.right_encoder = None 
+        self.vel_target = VelocityTargets()
+        self.wheel_enc = Encoders()  # Wheel encoders with wrap around
+        self.prev_wheel_enc = Encoders()  # Previous wheel encoders with wrap around
+        self.prev_wheel_enc.left_encoder = None 
+        self.prev_wheel_enc.right_encoder = None 
+
         self.odometry = Odometry()
         self.odometry.header.frame_id = self.odom_frame_id
         self.odometry.child_frame_id = self.base_frame_id
@@ -37,7 +38,7 @@ class DifferentialDrive():
         self.position_y = 0
         self.orientation_z = 0
 
-        self.pub_vel_target = rospy.Publisher("wheel_vel_target", VelTarget, queue_size=1)
+        self.pub_vel_target = rospy.Publisher("wheel_vel_target", VelocityTargets, queue_size=1)
         self.pub_odom = rospy.Publisher("odom", Odometry, queue_size=1)
         self.sub_cmd_vel = rospy.Subscriber("cmd_vel", Twist, self.cmdVelCB)
         self.sub_wheel_enc = rospy.Subscriber("wheel_enc", Encoders, self.encodersCB)
@@ -66,23 +67,8 @@ class DifferentialDrive():
         self.ticks_since_target = 0
 
     def encodersCB(self, msg):
-        # Wrap around for left encoder
-        if (msg.left_encoder < self.encoder_low_wrap and self.prev_wheel_enc.left_encoder > self.encoder_high_wrap):
-            self.left_nb_of_wraps += 1
-        elif (msg.left_encoder > self.encoder_high_wrap and self.prev_wheel_enc.left_encoder < self.encoder_low_wrap):
-            self.left_nb_of_wraps -= 1
-
-        # Wrap around for right encoder
-        if (msg.right_encoder < self.encoder_low_wrap and self.prev_wheel_enc.right_encoder > self.encoder_high_wrap):
-            self.left_nb_of_wraps += 1
-        elif (msg.right_encoder > self.encoder_high_wrap and self.prev_wheel_enc.right_encoder < self.encoder_low_wrap):
-            self.right_nb_of_wraps -= 1
-
-        self.wheel_enc_wrap.left_encoder = msg.left_encoder + self.left_nb_of_wraps * (self.encoder_max - self.encoder_min)
-        self.wheel_enc_wrap.right_encoder = msg.right_encoder + self.right_nb_of_wraps * (self.encoder_max - self.encoder_min)
-
-        self.prev_wheel_enc = msg
-
+        self.wheel_enc.left_encoder = msg.left_encoder + msg.left_encoder_multiplier * (self.encoder_max - self.encoder_min)
+        self.wheel_enc.right_encoder = msg.right_encoder + msg.right_encoder_multiplier * (self.encoder_max - self.encoder_min)
         current_time = rospy.Time.now()
         if self.prev_time != None:
             elapsed_time = (current_time - self.prev_time).to_sec()
@@ -90,13 +76,13 @@ class DifferentialDrive():
         self.prev_time = current_time
 
     def updateOdometry(self, elapsed_time):
-        if self.prev_wheel_enc_wrap.left_encoder == None or self.prev_wheel_enc_wrap.right_encoder == None:
+        if self.prev_wheel_enc.left_encoder == None or self.prev_wheel_enc.right_encoder == None:
             d_left = 0
             d_right = 0
         else:
-            d_left = (self.wheel_enc_wrap.left_encoder - self.prev_wheel_enc_wrap.left_encoder) / self.ticks_per_meter
-            d_right = (self.wheel_enc_wrap.right_encoder - self.prev_wheel_enc_wrap.right_encoder) / self.ticks_per_meter
-        self.prev_wheel_enc_wrap = deepcopy(self.wheel_enc_wrap)
+            d_left = (self.wheel_enc.left_encoder - self.prev_wheel_enc.left_encoder) / self.ticks_per_meter
+            d_right = (self.wheel_enc.right_encoder - self.prev_wheel_enc.right_encoder) / self.ticks_per_meter
+        self.prev_wheel_enc = deepcopy(self.wheel_enc)
 
         # Calculate distance and rotation traveled in the base frame in the x and y axis
         d_distance = (d_left + d_right) / 2
