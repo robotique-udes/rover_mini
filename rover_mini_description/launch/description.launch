@@ -1,0 +1,10 @@
+<launch>
+
+    <arg name="robot_namespace" default="/" />
+
+    <param name="robot_description" command="$(find xacro)/xacro '$(find rover_mini_description)/urdf/rover_mini.urdf.xacro'
+        --inorder
+        robot_namespace:=$(arg robot_namespace)
+        " />
+
+</launch>
