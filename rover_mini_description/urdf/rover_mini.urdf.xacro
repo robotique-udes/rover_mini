@@ -19,8 +19,13 @@
   <xacro:property name="wheel_vertical_offset" value="-0.075" />
 
   <!-- Wheel properties -->
-  <xacro:property name="wheel_length" value="0.04" />
+  <xacro:property name="wheel_length" value="0.045" />
   <xacro:property name="wheel_radius" value="0.05" />
+
+  <!-- Intel Realsense d435 positionnning -->
+  <xacro:property name="realsense_x_offset" value="0.24" /> <!-- Long side-->
+  <xacro:property name="realsense_y_offset" value="0.1" /> <!-- Short side-->
+  <xacro:property name="realsense_z_offset" value="0.39" />
 
   <!-- Base link -->
   <link name='base_link'>
@@ -146,9 +151,9 @@
   </xacro:stereo_camera_sensor>-->
 
   <!-- Intel RealSense d435 -->
-  <!--<xacro:realsense_d435_sensor name="d435" parent="base_link" >
-    <origin xyz="${base_x_size/2} 0 ${base_z_size}" rpy="0 0 0" />
-  </xacro:realsense_d435_sensor>-->
+  <xacro:realsense_d435_sensor name="d435" parent="base_link" >
+    <origin xyz="${base_x_size/2 - realsense_x_offset} ${base_y_size/2 - realsense_y_offset} ${base_z_size/2 + realsense_z_offset}" rpy="0 0 0" />
+  </xacro:realsense_d435_sensor>
 
   <!-- gazebo plugins -->
   <gazebo>
